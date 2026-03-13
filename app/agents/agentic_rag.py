@@ -22,15 +22,12 @@ from app.agents.hallucination_grader import grade_hallucination
 from app.agents.query_router import route_query
 from app.agents.retrieval_grader import grade_documents
 from app.config import MAX_RETRIES
+from app.formatter import format_response
 from app.llm import get_llm
 from app.vector_store import get_retriever, load_vector_store
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-
-# ---------------------------------------------------------------------------
-# State definition
-# ---------------------------------------------------------------------------
 
 class AgentState(TypedDict):
     question: str
@@ -41,10 +38,7 @@ class AgentState(TypedDict):
     route: Optional[str]
 
 
-# ---------------------------------------------------------------------------
 # RAG generation helper
-# ---------------------------------------------------------------------------
-
 _RAG_TEMPLATE = """You are a helpful assistant answering questions about Indian Cricket.
 Answer the question based only on the provided context. If the answer is not in the context, say "I don't have information about this in the provided documents."
 
@@ -64,10 +58,7 @@ def _generate_answer(question: str, documents: list) -> str:
     return chain.invoke({"context": context, "question": question})
 
 
-# ---------------------------------------------------------------------------
 # Graph nodes
-# ---------------------------------------------------------------------------
-
 def node_route_query(state: AgentState) -> AgentState:
     """Route the query: vectorstore or not_relevant."""
     decision = route_query(state["question"])
@@ -142,10 +133,7 @@ def node_fallback(state: AgentState) -> AgentState:
     }
 
 
-# ---------------------------------------------------------------------------
 # Conditional edge functions
-# ---------------------------------------------------------------------------
-
 def edge_after_route(state: AgentState) -> str:
     return "retrieve" if state["route"] == "vectorstore" else "not_relevant"
 
@@ -162,25 +150,8 @@ def edge_after_answer_grade(state: AgentState) -> str:
     return "end" if state["route"] == "yes" else "fallback"
 
 
-# ---------------------------------------------------------------------------
 # Build the graph (factory function – accepts optional vector_store for DI)
-# ---------------------------------------------------------------------------
-
 def build_agentic_rag(vector_store=None):
-    """Build and compile the LangGraph StateGraph for Agentic RAG.
-
-    Parameters
-    ----------
-    vector_store:
-        Optional pre-loaded Chroma vector store.  Passed through to the
-        retrieve node so tests / callers can inject a mock store.
-
-    Returns
-    -------
-    CompiledGraph
-        A compiled LangGraph application ready for ``invoke()``.
-    """
-
     def _retrieve(state):
         return node_retrieve(state, vector_store=vector_store)
 
@@ -227,13 +198,6 @@ def build_agentic_rag(vector_store=None):
 
 
 def query_agentic(question: str, vector_store=None) -> dict:
-    """Run the full Agentic RAG pipeline for *question*.
-
-    Returns
-    -------
-    dict
-        ``{"answer": str, "sources": list[dict], "agent_trace": list[str]}``
-    """
     app = build_agentic_rag(vector_store=vector_store)
     initial_state: AgentState = {
         "question": question,
@@ -255,7 +219,7 @@ def query_agentic(question: str, vector_store=None) -> dict:
     ]
 
     return {
-        "answer": final_state.get("answer", "No answer generated."),
+        "answer": format_response(final_state.get("answer", "No answer generated.")),
         "sources": sources,
         "agent_trace": final_state.get("agent_trace", []),
     }

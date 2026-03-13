@@ -15,21 +15,14 @@ if _project_root not in sys.path:
 
 import streamlit as st
 
-# ---------------------------------------------------------------------------
 # Page configuration (must be the first Streamlit call)
-# ---------------------------------------------------------------------------
-
 st.set_page_config(
     page_title="🏏 Indian Cricket RAG",
     page_icon="🏏",
     layout="wide",
 )
 
-# ---------------------------------------------------------------------------
 # Lazy imports (heavy ML libraries)
-# ---------------------------------------------------------------------------
-
-
 @st.cache_resource(show_spinner="Loading vector store…")
 def _load_vector_store():
     from app.vector_store import load_vector_store

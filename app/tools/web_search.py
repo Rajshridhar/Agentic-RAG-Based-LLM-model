@@ -7,18 +7,6 @@ indicating that web search is not yet configured.
 
 
 def web_search(query: str) -> str:  # noqa: ARG001
-    """Placeholder web search.
-
-    Parameters
-    ----------
-    query:
-        The search query string (currently unused).
-
-    Returns
-    -------
-    str
-        A message indicating web search is not yet available.
-    """
     return (
         "Web search is not configured in this deployment. "
         "Please consult an external source for up-to-date information."

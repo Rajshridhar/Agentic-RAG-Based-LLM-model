@@ -4,6 +4,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 
+from app.formatter import format_response
 from app.llm import get_llm
 from app.vector_store import get_retriever, load_vector_store
 
@@ -62,7 +63,7 @@ def query_simple(question: str, vector_store=None) -> dict:
         ``{"answer": str, "sources": list[dict]}``
     """
     chain, retriever = build_rag_chain(vector_store)
-    answer = chain.invoke(question)
+    answer = format_response(chain.invoke(question))
     docs = retriever.invoke(question)
     sources = [
         {

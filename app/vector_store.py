@@ -1,27 +1,15 @@
-"""ChromaDB vector store – create from documents or load from disk."""
-
 from langchain_community.vectorstores import Chroma
 
 from app.config import CHROMA_DB_PATH, RETRIEVER_K
 from app.embeddings import get_embeddings
+from app.chunker import chunk_document
 
 
 def create_vector_store(chunks: list, persist_directory: str = CHROMA_DB_PATH) -> Chroma:
     """Build a ChromaDB vector store from *chunks* and persist it to disk.
-
-    Parameters
-    ----------
-    chunks:
-        LangChain Document objects to index.
-    persist_directory:
-        Path where ChromaDB data will be stored.
-
-    Returns
-    -------
-    Chroma
-        The created vector store instance.
     """
     embeddings = get_embeddings()
+    chunks = chunk_document()
     vector_store = Chroma.from_documents(
         chunks,
         embeddings,
@@ -33,11 +21,6 @@ def create_vector_store(chunks: list, persist_directory: str = CHROMA_DB_PATH) -
 
 def load_vector_store(persist_directory: str = CHROMA_DB_PATH) -> Chroma:
     """Load an existing ChromaDB vector store from *persist_directory*.
-
-    Returns
-    -------
-    Chroma
-        The loaded vector store instance.
     """
     embeddings = get_embeddings()
     vector_store = Chroma(

@@ -7,22 +7,6 @@ from app.config import CHUNK_OVERLAP, CHUNK_SIZE
 
 
 def chunk_documents(documents: list, chunk_size: int = CHUNK_SIZE, chunk_overlap: int = CHUNK_OVERLAP) -> list:
-    """Split *documents* into smaller chunks and enrich each chunk's metadata.
-
-    Parameters
-    ----------
-    documents:
-        LangChain Document objects (e.g. from PDFPlumberLoader).
-    chunk_size:
-        Maximum character length of each chunk.
-    chunk_overlap:
-        Number of overlapping characters between adjacent chunks.
-
-    Returns
-    -------
-    list[Document]
-        List of chunked Document objects with enriched metadata.
-    """
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,

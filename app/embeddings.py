@@ -13,7 +13,7 @@ def get_embeddings(model_name: str = EMBEDDING_MODEL) -> HuggingFaceEmbeddings:
     The model is loaded once and reused on subsequent calls to avoid
     redundant downloads / initialisation overhead.
     """
-    global _embeddings_instance  # noqa: PLW0603
+    global _embeddings_instance
     if _embeddings_instance is None:
         _embeddings_instance = HuggingFaceEmbeddings(model_name=model_name)
         print(f"[✓] Embeddings model loaded: {model_name}")

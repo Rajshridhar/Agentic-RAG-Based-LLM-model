@@ -78,11 +78,6 @@ def load_and_validate_pdf(pdf_path: str) -> list:
     3. PDF integrity (no corruption, at least one page)
     4. Readability (Flesch score >= 18 for the first page)
     5. OCR quality (average alpha/space ratio >= 0.7)
-
-    Returns
-    -------
-    list[Document]
-        Loaded LangChain documents.
     """
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF not found: {pdf_path}")

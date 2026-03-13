@@ -87,24 +87,6 @@ def health():
 
 @app.post("/api/query")
 def query():
-    """Answer a question using simple or agentic RAG.
-
-    Request body (JSON)::
-
-        {
-            "question": "Tell me about IPL",
-            "mode": "agentic"   // or "simple" (default: "agentic")
-        }
-
-    Response::
-
-        {
-            "answer": "...",
-            "sources": [...],
-            "agent_trace": [...],
-            "mode": "agentic"
-        }
-    """
     data = request.get_json(silent=True) or {}
     question = data.get("question", "").strip()
     mode = data.get("mode", "agentic").lower()
@@ -195,9 +177,6 @@ def history():
     return jsonify(_history)
 
 
-# ---------------------------------------------------------------------------
 # Entry-point
-# ---------------------------------------------------------------------------
-
 if __name__ == "__main__":
     app.run(host=FLASK_HOST, port=FLASK_PORT, debug=FLASK_DEBUG)
