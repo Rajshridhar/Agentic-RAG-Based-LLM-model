@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# ChromaDB (vector store data – rebuild with scripts/ingest.py)
+chroma_db/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Model cache (downloaded by HuggingFace)
+# Uncomment if you want to exclude cached models:
+# ~/.cache/huggingface/
+
+# Temporary files
+tmp/
+temp/
