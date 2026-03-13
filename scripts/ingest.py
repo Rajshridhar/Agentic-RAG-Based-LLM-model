@@ -19,7 +19,10 @@ import shutil
 from app.chunker import chunk_documents
 from app.config import CHROMA_DB_PATH, PDF_PATH
 from app.document_loader import load_and_validate_pdf
+from app.logger import get_logger
 from app.vector_store import create_vector_store
+
+logger = get_logger(__name__)
 
 
 def ingest(pdf_path: str, chroma_dir: str, recreate: bool = False) -> None:
@@ -34,36 +37,31 @@ def ingest(pdf_path: str, chroma_dir: str, recreate: bool = False) -> None:
     recreate:
         If *True*, delete and recreate the ChromaDB directory before indexing.
     """
-    print(f"\n{'='*60}")
-    print(f"  Indian Cricket RAG – Ingestion Script")
-    print(f"{'='*60}")
-    print(f"  PDF:       {pdf_path}")
-    print(f"  ChromaDB:  {chroma_dir}")
-    print(f"  Recreate:  {recreate}")
-    print(f"{'='*60}\n")
+    logger.info("Indian Cricket RAG – Ingestion Script")
+    logger.info("PDF: %s", pdf_path)
+    logger.info("ChromaDB: %s", chroma_dir)
+    logger.info("Recreate: %s", recreate)
 
     if recreate and os.path.exists(chroma_dir):
         shutil.rmtree(chroma_dir)
-        print(f"[!] Deleted existing ChromaDB at '{chroma_dir}'")
+        logger.warning("Deleted existing ChromaDB at '%s'", chroma_dir)
 
     # Step 1 – Load and validate
-    print("Step 1/3 – Loading and validating PDF…")
+    logger.info("Step 1/3 – Loading and validating PDF…")
     documents = load_and_validate_pdf(pdf_path)
 
     # Step 2 – Chunk
-    print("\nStep 2/3 – Chunking documents…")
+    logger.info("Step 2/3 – Chunking documents…")
     chunks = chunk_documents(documents)
 
     # Step 3 – Create vector store
-    print("\nStep 3/3 – Creating vector store…")
+    logger.info("Step 3/3 – Creating vector store…")
     create_vector_store(chunks, chroma_dir)
 
-    print(f"\n{'='*60}")
-    print("  Ingestion complete!")
-    print(f"  Documents loaded: {len(documents)}")
-    print(f"  Chunks created:   {len(chunks)}")
-    print(f"  ChromaDB path:    {chroma_dir}")
-    print(f"{'='*60}\n")
+    logger.info("Ingestion complete!")
+    logger.info("Documents loaded: %d", len(documents))
+    logger.info("Chunks created: %d", len(chunks))
+    logger.info("ChromaDB path: %s", chroma_dir)
 
 
 def main() -> None:

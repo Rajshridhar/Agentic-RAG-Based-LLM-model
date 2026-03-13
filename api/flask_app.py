@@ -17,6 +17,11 @@ from datetime import datetime, timezone
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
+    
+
+from app.chunker import chunk_documents
+from app.document_loader import load_and_validate_pdf
+from app.vector_store import create_vector_store
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -153,13 +158,17 @@ def ingest():
     pdf_file.save(save_path)
 
     try:
-        from app.chunker import chunk_documents
-        from app.document_loader import load_and_validate_pdf
-        from app.vector_store import create_vector_store
-
         documents = load_and_validate_pdf(save_path)
+        if not documents:
+            return jsonify({"error": "Failed to load PDF. No documents extracted."}), 422
+
         chunks = chunk_documents(documents, CHUNK_SIZE, CHUNK_OVERLAP)
+        if not chunks:
+            return jsonify({"error": "Failed to chunk documents. No chunks created."}), 422
+
         vs = create_vector_store(chunks, CHROMA_DB_PATH)
+        if vs is None:
+            return jsonify({"error": "Failed to create vector store."}), 500
 
         # Refresh cached vector store
         global _vector_store  # noqa: PLW0603

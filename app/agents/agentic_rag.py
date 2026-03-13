@@ -128,7 +128,7 @@ def node_fallback(state: AgentState) -> AgentState:
     trace.append("fallback → insufficient information")
     return {
         **state,
-        "answer": "I don't have enough information in the knowledge base to answer this question.",
+        "answer": "I don't have enough information in the knowledge base to answer this question.(BHAG BHOSDIKE)",
         "agent_trace": trace,
     }
 

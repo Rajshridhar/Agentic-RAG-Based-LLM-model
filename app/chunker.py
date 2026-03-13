@@ -4,6 +4,9 @@ import textstat
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.config import CHUNK_OVERLAP, CHUNK_SIZE
+from app.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def chunk_documents(documents: list, chunk_size: int = CHUNK_SIZE, chunk_overlap: int = CHUNK_OVERLAP) -> list:
@@ -22,5 +25,5 @@ def chunk_documents(documents: list, chunk_size: int = CHUNK_SIZE, chunk_overlap
             }
         )
 
-    print(f"[✓] Created {len(chunks)} chunk(s) from {len(documents)} document(s)")
+    logger.info("Created %d chunk(s) from %d document(s)", len(chunks), len(documents))
     return chunks

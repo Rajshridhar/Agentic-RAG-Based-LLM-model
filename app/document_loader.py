@@ -9,6 +9,10 @@ import fitz  # PyMuPDF
 import textstat
 from langchain_community.document_loaders import PDFPlumberLoader
 
+from app.logger import get_logger
+
+logger = get_logger(__name__)
+
 # python-magic import is platform-aware
 if sys.platform == "win32":
     import magic  # python-magic-bin on Windows
@@ -84,31 +88,31 @@ def load_and_validate_pdf(pdf_path: str) -> list:
 
     # 1. File size
     size_mb = validate_file_size(pdf_path)
-    print(f"[✓] File size: {size_mb:.2f} MB")
+    logger.info("File size: %.2f MB", size_mb)
 
     # 2. MIME type
     mime = validate_mime_type(pdf_path)
-    print(f"[✓] MIME type: {mime}")
+    logger.info("MIME type: %s", mime)
 
     # 3. PDF integrity
     page_count = validate_pdf_integrity(pdf_path)
-    print(f"[✓] PDF integrity OK – {page_count} page(s)")
+    logger.info("PDF integrity OK – %d page(s)", page_count)
 
     # Load documents
     loader = PDFPlumberLoader(pdf_path)
     documents = loader.load()
-    print(f"[✓] Loaded {len(documents)} document(s)")
+    logger.info("Loaded %d document(s)", len(documents))
 
     if not documents:
         raise ValueError("No documents loaded from PDF")
 
     # 4. Readability (check first page)
     readability_score = validate_readability(documents[0].page_content)
-    print(f"[✓] Readability score (first page): {readability_score:.1f}")
+    logger.info("Readability score (first page): %.1f", readability_score)
 
     # 5. OCR quality (average across all pages)
     total_ratio = sum(validate_ocr_quality(doc.page_content) for doc in documents)
     avg_ratio = total_ratio / len(documents)
-    print(f"[✓] Average OCR quality ratio: {avg_ratio:.2f}")
+    logger.info("Average OCR quality ratio: %.2f", avg_ratio)
 
     return documents
