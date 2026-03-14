@@ -27,6 +27,7 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 from app.config import (
+    AIRAWAT_MODEL,
     CHROMA_DB_PATH,
     CHUNK_OVERLAP,
     CHUNK_SIZE,
@@ -86,7 +87,7 @@ def health():
     return jsonify(
         {
             "status": "healthy",
-            "model": LLM_MODEL,
+            "model": AIRAWAT_MODEL,
             "embedding_model": EMBEDDING_MODEL,
             "chunks": _chunk_count(),
         }

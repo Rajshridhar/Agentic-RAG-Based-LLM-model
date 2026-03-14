@@ -135,7 +135,7 @@ with st.sidebar:
 
 st.title("🏏 Ask about Indian Cricket History")
 st.caption(
-    "Powered by `google/flan-t5-small` + ChromaDB | "
+    "Powered by `meta/llama-3.2-11b-vision-instruct` (Airawat API) + ChromaDB | "
     f"Mode: **{st.session_state.mode}**"
 )
 
