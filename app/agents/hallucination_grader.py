@@ -5,6 +5,8 @@ Returns ``"yes"`` if the answer is grounded (no hallucination) or ``"no"``
 if it appears to be hallucinated.
 """
 
+import re
+
 from langchain_core.prompts import PromptTemplate
 
 from app.llm import get_llm
@@ -12,13 +14,17 @@ from app.logger import get_logger
 
 logger = get_logger(__name__)
 
-_HALLUCINATION_TEMPLATE = """Check if the answer below is fully supported by the provided documents. Reply with exactly one word: "yes" or "no".
-Reply "yes" if the answer is grounded in the documents.
-Reply "no" if the answer contains information not found in the documents.
+_HALLUCINATION_TEMPLATE = """You are a grader assessing whether an answer is grounded in the provided documents.
+
+Rules:
+- If the answer is supported by information in the documents, respond with exactly: yes
+- If the answer contains claims or information NOT found in the documents, respond with exactly: no
+
+Do NOT explain your reasoning. Output ONLY the single word "yes" or "no".
 
 Documents: {documents}
 Answer: {answer}
-Grounded (yes or no):"""
+Verdict:"""
 
 
 def grade_hallucination(answer: str, documents: list) -> str:
@@ -32,7 +38,18 @@ def grade_hallucination(answer: str, documents: list) -> str:
 
     logger.info("Checking hallucination for answer (%d chars) against %d document(s)", len(answer), len(documents))
     raw = chain.invoke({"documents": docs_text, "answer": answer[:500]})
-    score = str(raw).strip().lower()
-    result = "yes" if "yes" in score else "no"
-    logger.info("Hallucination check result: grounded=%s (raw: '%s')", result, score)
+    result = _parse_yes_no(str(raw))
+    logger.info("Hallucination check result: grounded=%s (raw: '%s')", result, str(raw).strip()[:200])
     return result
+
+
+def _parse_yes_no(text: str) -> str:
+    """Robustly extract 'yes' or 'no' from LLM output."""
+    cleaned = text.strip().lower()
+    first_word = re.split(r'[^a-z]', cleaned)[0]
+    if first_word in ("yes", "no"):
+        return first_word
+    matches = re.findall(r'\b(yes|no)\b', cleaned)
+    if matches:
+        return matches[-1]
+    return "no"

@@ -5,6 +5,8 @@ Returns ``"yes"`` if the answer is useful or ``"no"`` if it is off-topic /
 unhelpful.
 """
 
+import re
+
 from langchain_core.prompts import PromptTemplate
 
 from app.llm import get_llm
@@ -12,11 +14,17 @@ from app.logger import get_logger
 
 logger = get_logger(__name__)
 
-_ANSWER_GRADE_TEMPLATE = """Does the answer below address the question? Reply with exactly one word: "yes" or "no".
+_ANSWER_GRADE_TEMPLATE = """You are a grader assessing whether an answer addresses a question.
+
+Rules:
+- If the answer addresses or attempts to answer the question, respond with exactly: yes
+- If the answer is completely off-topic or does not address the question at all, respond with exactly: no
+
+Do NOT explain your reasoning. Output ONLY the single word "yes" or "no".
 
 Question: {question}
 Answer: {answer}
-Addresses the question (yes or no):"""
+Verdict:"""
 
 
 def grade_answer(question: str, answer: str) -> str:
@@ -27,7 +35,18 @@ def grade_answer(question: str, answer: str) -> str:
 
     logger.info("Grading answer usefulness for question: '%s'", question[:100])
     raw = chain.invoke({"question": question, "answer": answer[:500]})
-    score = str(raw).strip().lower()
-    result = "yes" if "yes" in score else "no"
-    logger.info("Answer grade result: useful=%s (raw: '%s')", result, score)
+    result = _parse_yes_no(str(raw))
+    logger.info("Answer grade result: useful=%s (raw: '%s')", result, str(raw).strip()[:200])
     return result
+
+
+def _parse_yes_no(text: str) -> str:
+    """Robustly extract 'yes' or 'no' from LLM output."""
+    cleaned = text.strip().lower()
+    first_word = re.split(r'[^a-z]', cleaned)[0]
+    if first_word in ("yes", "no"):
+        return first_word
+    matches = re.findall(r'\b(yes|no)\b', cleaned)
+    if matches:
+        return matches[-1]
+    return "no"

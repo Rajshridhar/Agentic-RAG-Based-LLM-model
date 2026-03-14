@@ -1,8 +1,10 @@
 """Query Router Agent – decides whether a question is relevant to Indian Cricket.
 
 Uses the LLM to classify the query.  Returns ``"vectorstore"`` when the query
-is about Indian Cricket history; ``"not_relevant"`` otherwise.
+is about Indian Cricket; ``"not_relevant"`` otherwise.
 """
+
+import re
 
 from langchain_core.prompts import PromptTemplate
 
@@ -11,12 +13,16 @@ from app.logger import get_logger
 
 logger = get_logger(__name__)
 
-_ROUTER_TEMPLATE = """Classify the question below. Reply with exactly one word.
-Reply "yes" if the question is about Indian cricket history, players, matches, tournaments, IPL, or the Indian cricket team.
-Reply "no" if the question is about anything else.
+_ROUTER_TEMPLATE = """You are a query classifier. Your ONLY job is to decide if the question is about cricket.
+
+Rules:
+- If the question is about cricket (Indian cricket, players, matches, IPL, tournaments, teams, records, scores, cricket history, BCCI, or anything related to the sport of cricket), respond with exactly: yes
+- If the question is about something completely unrelated to cricket, respond with exactly: no
+
+Do NOT explain your reasoning. Output ONLY the single word "yes" or "no".
 
 Question: {question}
-Answer (yes or no):"""
+Answer:"""
 
 
 def route_query(question: str) -> str:
@@ -34,8 +40,26 @@ def route_query(question: str) -> str:
 
     logger.info("Routing query: '%s'", question[:100])
     raw = chain.invoke({"question": question})
-    # Normalise model output – small models can be noisy
-    decision = str(raw).strip().lower()
-    result = "vectorstore" if "yes" in decision else "not_relevant"
-    logger.info("Route decision: %s (raw LLM output: '%s')", result, decision)
+    decision = _parse_yes_no(str(raw))
+    result = "vectorstore" if decision == "yes" else "not_relevant"
+    logger.info("Route decision: %s (raw LLM output: '%s')", result, str(raw).strip()[:200])
     return result
+
+
+def _parse_yes_no(text: str) -> str:
+    """Robustly extract 'yes' or 'no' from LLM output.
+
+    Strategy: check the first meaningful word, then fall back to
+    whichever keyword appears last (to handle 'No wait, yes').
+    """
+    cleaned = text.strip().lower()
+    # Check if the response starts with yes/no
+    first_word = re.split(r'[^a-z]', cleaned)[0]
+    if first_word in ("yes", "no"):
+        return first_word
+    # Fallback: find the last occurrence of yes or no
+    matches = re.findall(r'\b(yes|no)\b', cleaned)
+    if matches:
+        return matches[-1]
+    # Default to yes for cricket-related system (safer to retrieve than reject)
+    return "yes"

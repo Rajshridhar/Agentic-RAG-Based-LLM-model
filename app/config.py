@@ -17,8 +17,8 @@ CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
 
 # Airawat Llama API settings
-AIRAWAT_API_URL = os.getenv("AIRAWAT_API_URL", "")
-AIRAWAT_TOKEN = os.getenv("AIRAWAT_TOKEN", "")
+AIRAWAT_API_URL = os.getenv("AIRAWAT_API_KEY", "")
+AIRAWAT_TOKEN = os.getenv("AIRAWAT_API_TOKEN", "")
 AIRAWAT_MODEL = os.getenv("AIRAWAT_MODEL", "meta/llama-3.2-11b-vision-instruct")
 
 # Embedding model
