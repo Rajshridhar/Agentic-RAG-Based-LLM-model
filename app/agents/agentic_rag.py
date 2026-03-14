@@ -24,9 +24,12 @@ from app.agents.retrieval_grader import grade_documents
 from app.config import MAX_RETRIES
 from app.formatter import format_response
 from app.llm import get_llm
+from app.logger import get_logger
 from app.vector_store import get_retriever, load_vector_store
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+
+logger = get_logger(__name__)
 
 
 class AgentState(TypedDict):
@@ -51,11 +54,14 @@ Answer:"""
 
 
 def _generate_answer(question: str, documents: list) -> str:
+    logger.info("Generating answer from %d document(s) for: '%s'", len(documents), question[:100])
     llm = get_llm()
     prompt = PromptTemplate.from_template(_RAG_TEMPLATE)
     chain = prompt | llm | StrOutputParser()
     context = "\n\n".join(doc.page_content for doc in documents)
-    return chain.invoke({"context": context, "question": question})
+    answer = chain.invoke({"context": context, "question": question})
+    logger.info("Generated answer (%d chars): '%s'", len(answer), answer[:150])
+    return answer
 
 
 # Graph nodes
@@ -198,6 +204,7 @@ def build_agentic_rag(vector_store=None):
 
 
 def query_agentic(question: str, vector_store=None) -> dict:
+    logger.info("=== Agentic RAG query started: '%s' ===", question[:150])
     app = build_agentic_rag(vector_store=vector_store)
     initial_state: AgentState = {
         "question": question,
@@ -218,8 +225,10 @@ def query_agentic(question: str, vector_store=None) -> dict:
         for doc in final_state.get("documents", [])
     ]
 
-    return {
+    result = {
         "answer": format_response(final_state.get("answer", "No answer generated.")),
         "sources": sources,
         "agent_trace": final_state.get("agent_trace", []),
     }
+    logger.info("=== Agentic RAG query completed — trace: %s ===", result["agent_trace"])
+    return result

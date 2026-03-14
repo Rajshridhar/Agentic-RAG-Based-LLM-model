@@ -8,6 +8,9 @@ if it appears to be hallucinated.
 from langchain_core.prompts import PromptTemplate
 
 from app.llm import get_llm
+from app.logger import get_logger
+
+logger = get_logger(__name__)
 
 _HALLUCINATION_TEMPLATE = """Check if the answer below is fully supported by the provided documents. Reply with exactly one word: "yes" or "no".
 Reply "yes" if the answer is grounded in the documents.
@@ -27,6 +30,9 @@ def grade_hallucination(answer: str, documents: list) -> str:
     # Truncate context to keep the prompt within model limits
     docs_text = "\n\n".join(doc.page_content[:300] for doc in documents)[:1500]
 
+    logger.info("Checking hallucination for answer (%d chars) against %d document(s)", len(answer), len(documents))
     raw = chain.invoke({"documents": docs_text, "answer": answer[:500]})
     score = str(raw).strip().lower()
-    return "yes" if "yes" in score else "no"
+    result = "yes" if "yes" in score else "no"
+    logger.info("Hallucination check result: grounded=%s (raw: '%s')", result, score)
+    return result

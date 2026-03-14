@@ -6,7 +6,10 @@ from langchain_core.runnables import RunnablePassthrough
 
 from app.formatter import format_response
 from app.llm import get_llm
+from app.logger import get_logger
 from app.vector_store import get_retriever, load_vector_store
+
+logger = get_logger(__name__)
 
 _TEMPLATE = """You are a helpful assistant answering questions about Indian Cricket.
 Answer the question based only on the provided context. If the answer is not in the context, say "I don't have information about this in the provided documents."
@@ -62,9 +65,12 @@ def query_simple(question: str, vector_store=None) -> dict:
     dict
         ``{"answer": str, "sources": list[dict]}``
     """
+    logger.info("=== Simple RAG query started: '%s' ===", question[:150])
     chain, retriever = build_rag_chain(vector_store)
     answer = format_response(chain.invoke(question))
+    logger.info("Simple RAG answer (%d chars): '%s'", len(answer), answer[:150])
     docs = retriever.invoke(question)
+    logger.info("Retrieved %d source document(s)", len(docs))
     sources = [
         {
             "page": doc.metadata.get("page", "N/A"),

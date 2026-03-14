@@ -1,7 +1,6 @@
 """Flask REST API for the Indian Cricket Agentic RAG system.
 
-Endpoints
----------
+Endpoints:
 GET  /api/health        – System health check.
 POST /api/query         – Ask a question (supports "agentic" and "simple" modes).
 POST /api/ingest        – Upload and ingest a new PDF document.
@@ -37,6 +36,10 @@ from app.config import (
     FLASK_PORT,
     LLM_MODEL,
 )
+
+from app.logger import get_logger
+
+flask_logger = get_logger("api.flask_app")
 
 app = Flask(__name__)
 CORS(app)
@@ -99,6 +102,8 @@ def query():
     if not question:
         return jsonify({"error": "Missing 'question' in request body."}), 400
 
+    flask_logger.info("Received query — mode=%s, question='%s'", mode, question[:150])
+
     try:
         vs = _get_vector_store()
 
@@ -124,9 +129,11 @@ def query():
             }
         )
 
+        flask_logger.info("Query completed — answer (%d chars): '%s'", len(result['answer']), result['answer'][:150])
         return jsonify(result)
 
     except Exception as exc:  # noqa: BLE001
+        flask_logger.error("Query failed: %s", exc, exc_info=True)
         return jsonify({"error": str(exc)}), 500
 
 

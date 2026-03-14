@@ -7,6 +7,9 @@ question?".  Only documents that receive a "yes" score are kept.
 from langchain_core.prompts import PromptTemplate
 
 from app.llm import get_llm
+from app.logger import get_logger
+
+logger = get_logger(__name__)
 
 _GRADE_TEMPLATE = """You are grading document relevance. Reply with exactly one word: "yes" or "no".
 Is the document below relevant to the question?
@@ -35,11 +38,15 @@ def grade_documents(question: str, documents: list) -> list:
     prompt = PromptTemplate.from_template(_GRADE_TEMPLATE)
     chain = prompt | llm
 
+    logger.info("Grading %d retrieved document(s) for relevance", len(documents))
     relevant_docs = []
-    for doc in documents:
+    for i, doc in enumerate(documents):
         raw = chain.invoke({"question": question, "document": doc.page_content[:500]})
         score = str(raw).strip().lower()
-        if "yes" in score:
+        is_relevant = "yes" in score
+        logger.debug("  Doc %d — relevant=%s (raw: '%s')", i + 1, is_relevant, score)
+        if is_relevant:
             relevant_docs.append(doc)
 
+    logger.info("Grading complete: %d/%d document(s) relevant", len(relevant_docs), len(documents))
     return relevant_docs

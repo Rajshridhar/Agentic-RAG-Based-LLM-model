@@ -3,6 +3,10 @@
 Run with::
 
     streamlit run ui/streamlit_app.py
+
+Requires the Flask backend to be running::
+
+    python api/flask_app.py
 """
 
 import os
@@ -13,7 +17,14 @@ _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
+import requests
 import streamlit as st
+
+from app.config import FLASK_HOST, FLASK_PORT
+
+# Flask API base URL
+_API_HOST = "127.0.0.1" if FLASK_HOST == "0.0.0.0" else FLASK_HOST
+_API_BASE = f"http://{_API_HOST}:{FLASK_PORT}"
 
 # Page configuration (must be the first Streamlit call)
 st.set_page_config(
@@ -22,19 +33,14 @@ st.set_page_config(
     layout="wide",
 )
 
-# Lazy imports (heavy ML libraries)
-@st.cache_resource(show_spinner="Loading vector store…")
-def _load_vector_store():
-    from app.vector_store import load_vector_store
 
-    return load_vector_store()
-
-
-@st.cache_resource(show_spinner="Loading LLM…")
-def _load_llm():
-    from app.llm import get_llm
-
-    return get_llm()
+def _check_backend():
+    """Return True if Flask backend is reachable."""
+    try:
+        r = requests.get(f"{_API_BASE}/api/health", timeout=5)
+        return r.ok
+    except requests.ConnectionError:
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -82,24 +88,20 @@ with st.sidebar:
     st.subheader("📄 Upload New Document")
     uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
     if uploaded_file is not None:
-        data_dir = os.path.join(_project_root, "data")
-        os.makedirs(data_dir, exist_ok=True)
-        save_path = os.path.join(data_dir, uploaded_file.name)
-        with open(save_path, "wb") as f:
-            f.write(uploaded_file.read())
         with st.spinner("Ingesting document…"):
             try:
-                from app.chunker import chunk_documents
-                from app.config import CHUNK_OVERLAP, CHUNK_SIZE, CHROMA_DB_PATH
-                from app.document_loader import load_and_validate_pdf
-                from app.vector_store import create_vector_store
-
-                docs = load_and_validate_pdf(save_path)
-                chunks = chunk_documents(docs, CHUNK_SIZE, CHUNK_OVERLAP)
-                create_vector_store(chunks, CHROMA_DB_PATH)
-                # Clear cached vector store so it reloads
-                _load_vector_store.clear()
-                st.success(f"✅ Ingested {len(chunks)} chunk(s) from '{uploaded_file.name}'")
+                resp = requests.post(
+                    f"{_API_BASE}/api/ingest",
+                    files={"file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")},
+                    timeout=120,
+                )
+                data = resp.json()
+                if resp.ok:
+                    st.success(f"✅ Ingested {data.get('chunks_created', '?')} chunk(s) from '{uploaded_file.name}'")
+                else:
+                    st.error(f"❌ Ingestion failed: {data.get('error', 'Unknown error')}")
+            except requests.ConnectionError:
+                st.error("❌ Backend not reachable. Start it with: `python api/flask_app.py`")
             except Exception as exc:
                 st.error(f"❌ Ingestion failed: {exc}")
 
@@ -108,16 +110,18 @@ with st.sidebar:
     # System info
     st.subheader("ℹ️ System Info")
     try:
-        from app.config import EMBEDDING_MODEL, LLM_MODEL
-
-        st.write(f"**LLM:** `{LLM_MODEL}`")
-        st.write(f"**Embeddings:** `{EMBEDDING_MODEL}`")
-        try:
-            vs = _load_vector_store()
-            chunk_count = len(vs.get()["ids"])
-            st.write(f"**Chunks indexed:** {chunk_count}")
-        except Exception:
-            st.write("**Chunks indexed:** N/A")
+        resp = requests.get(f"{_API_BASE}/api/health", timeout=5)
+        if resp.ok:
+            info = resp.json()
+            st.write(f"**LLM:** `{info.get('model', 'N/A')}`")
+            st.write(f"**Embeddings:** `{info.get('embedding_model', 'N/A')}`")
+            st.write(f"**Chunks indexed:** {info.get('chunks', 'N/A')}")
+            st.write("**Backend:** 🟢 Connected")
+        else:
+            st.write("**Backend:** 🔴 Error")
+    except requests.ConnectionError:
+        st.write("**Backend:** 🔴 Not running")
+        st.warning("Start backend: `python api/flask_app.py`")
     except Exception:
         st.write("System info unavailable.")
 
@@ -158,26 +162,28 @@ if prompt := st.chat_input("Ask a question about Indian Cricket…"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Generate response
+    # Generate response via Flask API
     with st.chat_message("assistant"):
         with st.spinner("Thinking…"):
             try:
-                vs = _load_vector_store()
                 mode_key = st.session_state.mode
+                api_mode = "simple" if mode_key == "Simple RAG" else "agentic"
 
-                if mode_key == "Simple RAG":
-                    from app.rag_chain import query_simple
+                resp = requests.post(
+                    f"{_API_BASE}/api/query",
+                    json={"question": prompt, "mode": api_mode},
+                    timeout=300,
+                )
+                result = resp.json()
 
-                    result = query_simple(prompt, vector_store=vs)
-                    result["agent_trace"] = []
+                if resp.ok:
+                    answer = result.get("answer", "No answer returned.")
+                    sources = result.get("sources", [])
+                    agent_trace = result.get("agent_trace", [])
                 else:
-                    from app.agents.agentic_rag import query_agentic
-
-                    result = query_agentic(prompt, vector_store=vs)
-
-                answer = result["answer"]
-                sources = result.get("sources", [])
-                agent_trace = result.get("agent_trace", [])
+                    answer = f"❌ Error: {result.get('error', 'Unknown error')}"
+                    sources = []
+                    agent_trace = []
 
                 st.markdown(answer)
 
@@ -194,6 +200,11 @@ if prompt := st.chat_input("Ask a question about Indian Cricket…"):
                         for step in agent_trace:
                             st.write(f"→ {step}")
 
+            except requests.ConnectionError:
+                answer = "❌ Backend not reachable. Start it with: `python api/flask_app.py`"
+                sources = []
+                agent_trace = []
+                st.error(answer)
             except Exception as exc:
                 answer = f"❌ Error: {exc}"
                 sources = []
