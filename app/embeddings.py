@@ -1,8 +1,8 @@
-"""Embedding model setup using HuggingFace sentence-transformers."""
+"""Embedding model setup using Pinecone's hosted inference API."""
 
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_pinecone import PineconeEmbeddings
 
-from app.config import EMBEDDING_MODEL
+from app.config import EMBEDDING_MODEL, PINECONE_API_KEY
 from app.logger import get_logger
 
 logger = get_logger(__name__)
@@ -10,14 +10,17 @@ logger = get_logger(__name__)
 _embeddings_instance = None
 
 
-def get_embeddings(model_name: str = EMBEDDING_MODEL) -> HuggingFaceEmbeddings:
-    """Return a (cached) HuggingFaceEmbeddings instance.
+def get_embeddings(model_name: str = EMBEDDING_MODEL) -> PineconeEmbeddings:
+    """Return a (cached) PineconeEmbeddings instance.
 
-    The model is loaded once and reused on subsequent calls to avoid
-    redundant downloads / initialisation overhead.
+    Uses Pinecone's hosted inference API so the embedding model
+    (e.g. ``llama-text-embed-v2``) runs server-side — no local download.
     """
     global _embeddings_instance
     if _embeddings_instance is None:
-        _embeddings_instance = HuggingFaceEmbeddings(model_name=model_name)
-        logger.info("Embeddings model loaded: %s", model_name)
+        _embeddings_instance = PineconeEmbeddings(
+            model=model_name,
+            pinecone_api_key=PINECONE_API_KEY,
+        )
+        logger.info("Pinecone embeddings model loaded: %s", model_name)
     return _embeddings_instance

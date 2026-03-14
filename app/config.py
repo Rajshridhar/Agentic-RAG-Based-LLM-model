@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Base directory of the project (one level above this file)
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # PDF document path
 PDF_PATH = os.getenv("PDF_PATH", "")
 
-# ChromaDB persistence directory
+# ChromaDB persistence directory (legacy – kept for reference)
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "")
 
 # LLM model
@@ -21,8 +21,11 @@ AIRAWAT_API_URL = os.getenv("AIRAWAT_API_KEY", "")
 AIRAWAT_TOKEN = os.getenv("AIRAWAT_API_TOKEN", "")
 AIRAWAT_MODEL = os.getenv("AIRAWAT_MODEL", "meta/llama-3.2-11b-vision-instruct")
 
-# Embedding model
+# PineCone Settings
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "")
+EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "0"))
 
 # Chunking parameters
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "0"))

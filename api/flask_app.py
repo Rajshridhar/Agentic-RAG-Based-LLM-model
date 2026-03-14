@@ -28,7 +28,6 @@ from werkzeug.utils import secure_filename
 
 from app.config import (
     AIRAWAT_MODEL,
-    CHROMA_DB_PATH,
     CHUNK_OVERLAP,
     CHUNK_SIZE,
     EMBEDDING_MODEL,
@@ -36,6 +35,7 @@ from app.config import (
     FLASK_HOST,
     FLASK_PORT,
     LLM_MODEL,
+    PINECONE_INDEX_NAME,
 )
 
 from app.logger import get_logger
@@ -63,8 +63,12 @@ def _get_vector_store():
 
 def _chunk_count() -> int:
     try:
-        vs = _get_vector_store()
-        return len(vs.get()["ids"])
+        from pinecone import Pinecone
+        from app.config import PINECONE_API_KEY
+        pc = Pinecone(api_key=PINECONE_API_KEY)
+        index = pc.Index(PINECONE_INDEX_NAME)
+        stats = index.describe_index_stats()
+        return stats.total_vector_count
     except Exception:
         return -1
 
@@ -89,6 +93,7 @@ def health():
             "status": "healthy",
             "model": AIRAWAT_MODEL,
             "embedding_model": EMBEDDING_MODEL,
+            "pinecone_index": PINECONE_INDEX_NAME,
             "chunks": _chunk_count(),
         }
     )
@@ -174,7 +179,7 @@ def ingest():
         if not chunks:
             return jsonify({"error": "Failed to chunk documents. No chunks created."}), 422
 
-        vs = create_vector_store(chunks, CHROMA_DB_PATH)
+        vs = create_vector_store(chunks)
         if vs is None:
             return jsonify({"error": "Failed to create vector store."}), 500
 

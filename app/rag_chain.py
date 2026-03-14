@@ -33,8 +33,8 @@ def build_rag_chain(vector_store=None):
     Parameters
     ----------
     vector_store:
-        Optional pre-loaded Chroma vector store.  If *None* the store is
-        loaded from the configured persistence directory.
+        Optional pre-loaded Pinecone vector store.  If *None* the store is
+        loaded from the configured Pinecone index.
 
     Returns
     -------

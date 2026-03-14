@@ -1,38 +1,81 @@
-from langchain_chroma import Chroma
+"""Vector store backed by Pinecone – provides create, load, and retriever helpers."""
 
-from app.config import CHROMA_DB_PATH, RETRIEVER_K
+from pinecone import Pinecone, ServerlessSpec
+from langchain_pinecone import PineconeVectorStore
+
+from app.config import (
+    PINECONE_API_KEY,
+    PINECONE_INDEX_NAME,
+    EMBEDDING_DIMENSION,
+    RETRIEVER_K,
+)
 from app.embeddings import get_embeddings
-from app.chunker import chunk_documents
 from app.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Shared Pinecone client (initialised once)
+_pc_client = None
 
-def create_vector_store(chunks: list, persist_directory: str = CHROMA_DB_PATH) -> Chroma:
-    """Build a ChromaDB vector store from *chunks* and persist it to disk.
-    """
+
+def _get_pinecone_client() -> Pinecone:
+    """Return a cached Pinecone client."""
+    global _pc_client  # noqa: PLW0603
+    if _pc_client is None:
+        _pc_client = Pinecone(api_key=PINECONE_API_KEY)
+        logger.info("Pinecone client initialised")
+    return _pc_client
+
+
+def _ensure_index_exists() -> None:
+    """Create the Pinecone index if it does not already exist."""
+    pc = _get_pinecone_client()
+    existing = [idx.name for idx in pc.list_indexes()]
+    if PINECONE_INDEX_NAME not in existing:
+        pc.create_index(
+            name=PINECONE_INDEX_NAME,
+            dimension=EMBEDDING_DIMENSION,
+            metric="cosine",
+            spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+        )
+        logger.info(
+            "Created Pinecone index '%s' (dim=%d)", PINECONE_INDEX_NAME, EMBEDDING_DIMENSION
+        )
+    else:
+        logger.info("Pinecone index '%s' already exists", PINECONE_INDEX_NAME)
+
+
+def create_vector_store(chunks: list) -> PineconeVectorStore:
+    """Index *chunks* (LangChain Document objects) into Pinecone and return the store."""
+    _ensure_index_exists()
     embeddings = get_embeddings()
-    vector_store = Chroma.from_documents(
+    vector_store = PineconeVectorStore.from_documents(
         chunks,
-        embeddings,
-        persist_directory=persist_directory,
+        embedding=embeddings,
+        index_name=PINECONE_INDEX_NAME,
+        pinecone_api_key=PINECONE_API_KEY,
     )
-    logger.info("Vector store created with %d chunk(s) at '%s'", len(chunks), persist_directory)
+    logger.info(
+        "Vector store created – %d chunk(s) indexed in '%s'",
+        len(chunks),
+        PINECONE_INDEX_NAME,
+    )
     return vector_store
 
 
-def load_vector_store(persist_directory: str = CHROMA_DB_PATH) -> Chroma:
-    """Load an existing ChromaDB vector store from *persist_directory*.
-    """
+def load_vector_store() -> PineconeVectorStore:
+    """Connect to an existing Pinecone index and return a LangChain vector store."""
+    _ensure_index_exists()
     embeddings = get_embeddings()
-    vector_store = Chroma(
-        persist_directory=persist_directory,
-        embedding_function=embeddings,
+    vector_store = PineconeVectorStore(
+        index_name=PINECONE_INDEX_NAME,
+        embedding=embeddings,
+        pinecone_api_key=PINECONE_API_KEY,
     )
-    logger.info("Vector store loaded from '%s'", persist_directory)
+    logger.info("Vector store loaded from Pinecone index '%s'", PINECONE_INDEX_NAME)
     return vector_store
 
 
-def get_retriever(vector_store: Chroma, k: int = RETRIEVER_K):
+def get_retriever(vector_store: PineconeVectorStore, k: int = RETRIEVER_K):
     """Return a retriever for the given *vector_store* with top-*k* results."""
     return vector_store.as_retriever(search_kwargs={"k": k})
