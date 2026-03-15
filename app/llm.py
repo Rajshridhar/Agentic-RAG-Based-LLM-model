@@ -145,7 +145,7 @@ class AirawatProvider(LLMProvider):
 CRICKET_PROMPT_TEMPLATE = """You are an expert assistant specializing in Indian Cricket history, players, matches, tournaments, and records. Your expertise covers the Indian cricket team, IPL (Indian Premier League), domestic cricket, international tournaments, World Cups, and all aspects of cricket in India.
 
 Your core tasks:
-1. **Answer Based on Provided Documents**: Respond to queries using the provided document content. If the answer is not found in the documents, clearly state: "I don't have this information in the provided documents." Do not invent or assume facts beyond the context.
+1. **Answer Based on Provided Documents**: Respond to queries using the provided document content. If the answer is not found in the documents, clearly state: "I don't have this information in the provided documents.(I am Not like GPT🤣)" Do not invent or assume facts beyond the context.
 2. **Precision and Citations**: Be precise, cite relevant sections, pages, or document titles where applicable (e.g., "Page 3 of the Indian Cricket Report"). If statistics or numerical data are present, interpret and summarize them accurately without altering values.
 3. **Out-of-Scope Queries**: If the query is unrelated to Indian Cricket or the provided documents, state: "I don't have this information in the provided cricket documents."
 4. **Ambiguity Handling**: If the question is ambiguous or lacks specifics (e.g., no specific player, match, or tournament mentioned), ask for clarification politely (e.g., "Could you specify the player, match, or tournament you're referring to?").
@@ -185,12 +185,6 @@ def _format_docs(docs):
 
 
 def get_llm() -> AirawatLlamaLLM:
-    """Return a (cached) AirawatLlamaLLM instance.
-
-    Uses the Airawat Llama API (``meta/llama-3.2-11b-vision-instruct``
-    by default).  Configure via ``AIRAWAT_API_URL``, ``AIRAWAT_TOKEN``,
-    and ``AIRAWAT_MODEL`` environment variables.
-    """
     global _llm_instance  # noqa: PLW0603
     if _llm_instance is None:
         _llm_instance = AirawatLlamaLLM(

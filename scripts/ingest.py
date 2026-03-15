@@ -18,7 +18,7 @@ from app.chunker import chunk_documents
 from app.config import PDF_PATH, PINECONE_API_KEY, PINECONE_INDEX_NAME
 from app.document_loader import load_and_validate_pdf
 from app.logger import get_logger
-from app.vector_store import create_vector_store
+from app.vector_store import check_duplicate_source, create_vector_store
 
 logger = get_logger(__name__)
 
@@ -33,7 +33,7 @@ def ingest(pdf_path: str, recreate: bool = False) -> None:
     recreate:
         If *True*, delete all vectors from the Pinecone index before indexing.
     """
-    logger.info("Indian Cricket RAG – Ingestion Script")
+    logger.info("Indian Cricket RAG Ingestion Script")
     logger.info("PDF: %s", pdf_path)
     logger.info("Pinecone index: %s", PINECONE_INDEX_NAME)
     logger.info("Recreate: %s", recreate)
@@ -45,16 +45,27 @@ def ingest(pdf_path: str, recreate: bool = False) -> None:
         index.delete(delete_all=True)
         logger.warning("Deleted all vectors from Pinecone index '%s'", PINECONE_INDEX_NAME)
 
+    # Duplicate check (skip if --recreate was used since index was just cleared)
+    if not recreate:
+        source_file = os.path.basename(pdf_path)
+        if check_duplicate_source(source_file):
+            logger.error(
+                "Duplicate document: '%s' has already been ingested. "
+                "Use --recreate to clear the index and re-ingest.",
+                source_file,
+            )
+            return
+
     # Step 1 – Load and validate
-    logger.info("Step 1/3 – Loading and validating PDF…")
+    logger.info("Step 1/3: Loading and validating PDF…")
     documents = load_and_validate_pdf(pdf_path)
 
     # Step 2 – Chunk
-    logger.info("Step 2/3 – Chunking documents…")
+    logger.info("Step 2/3: Chunking documents…")
     chunks = chunk_documents(documents)
 
     # Step 3 – Create vector store
-    logger.info("Step 3/3 – Indexing chunks into Pinecone…")
+    logger.info("Step 3/3: Indexing chunks into Pinecone…")
     create_vector_store(chunks)
 
     logger.info("Ingestion complete!")

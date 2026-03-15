@@ -29,7 +29,7 @@ _API_BASE = f"http://{_API_HOST}:{FLASK_PORT}"
 # Page configuration (must be the first Streamlit call)
 st.set_page_config(
     page_title="Indian Cricket RAG",
-    page_icon="💎",
+    page_icon="🏏",
     layout="wide",
 )
 
@@ -37,9 +37,9 @@ st.set_page_config(
 def _check_backend():
     """Return True if Flask backend is reachable."""
     try:
-        r = requests.get(f"{_API_BASE}/api/health", timeout=5)
+        r = requests.get(f"{_API_BASE}/api/health", timeout=30)
         return r.ok
-    except requests.ConnectionError:
+    except (requests.ConnectionError, requests.ReadTimeout):
         return False
 
 
@@ -120,10 +120,35 @@ with st.sidebar:
     if st.button("🗑️ Clear conversation"):
         st.session_state.messages = []
         st.rerun()
+        
 
-# ---------------------------------------------------------------------------
 # Main chat area
-# ---------------------------------------------------------------------------
+st.markdown(
+    """
+    <style>
+    @keyframes slide {
+        0%   { left: 3.5rem; }
+        50%  { left: calc(100% - 16rem); }
+        100% { left: 3.5rem; }
+    }
+    .dev-credit {
+        position: fixed;
+        top: 1.5rem;
+        left: 20.5rem;
+        z-index: 999999;
+        font-size: 0.85rem;
+        color: #ccc;
+        background: linear-gradient(90deg, #1a1a2e, #16213e);
+        border-left: 3px solid #0ea5e9;
+        border-radius: 4px;
+        padding: 0.25rem 0.7rem;
+    }
+    .dev-credit strong { color: #38bdf8; }
+    </style>
+    <div class="dev-credit">Developed By: <strong>Shridhar Kumar</strong></div>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.title("🏏 Ask about Indian Cricket History")
 st.caption(
@@ -138,10 +163,10 @@ if not st.session_state.messages:
         <div style="text-align: center; padding: 1.5rem 0;">
             <p style="font-size: 1.15rem; color: #aaa; margin-top: 0.5rem;">
                 Ask anything about Indian Cricket history — legendary players,
-                iconic matches, records, and more.
+                iconic matches, records, and more. (Note: This is an Exploratory Project, It is not based on actual Use Case.)
             </p>
             <p style="color: #666; font-size: 0.95rem;">
-                💡 Try: <em>"Who scored the most centuries for India?"</em>
+                💡 Try: <em>"Tell me About Rohit Sharma and his contribution in Indian Cricket...."</em>
             </p>
         </div>
         """,

@@ -20,7 +20,7 @@ if _project_root not in sys.path:
 
 from app.chunker import chunk_documents
 from app.document_loader import load_and_validate_pdf
-from app.vector_store import create_vector_store
+from app.vector_store import check_duplicate_source, create_vector_store
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -160,6 +160,13 @@ def ingest():
     filename = secure_filename(pdf_file.filename)
     if not filename.lower().endswith(".pdf"):
         return jsonify({"error": "Only PDF files are supported."}), 400
+
+    # Check for duplicate before saving
+    if check_duplicate_source(filename):
+        return jsonify({
+            "error": f"Duplicate document: '{filename}' has already been ingested. "
+                     "Delete existing vectors first if you want to re-upload."
+        }), 409
 
     # Save to data directory
     data_dir = os.path.join(_project_root, "data")

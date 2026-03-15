@@ -1,4 +1,4 @@
-"""Vector search tool – wraps Pinecone retrieval for use in tool-calling agents."""
+"""Vector search tool wraps Pinecone retrieval for use in tool-calling agents."""
 
 from app.vector_store import get_retriever, load_vector_store
 

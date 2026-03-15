@@ -1,4 +1,4 @@
-"""Web search tool – placeholder for a future web-search fallback.
+"""Web search tool placeholder for a future web-search fallback.
 
 In a production system this would integrate with a real search API
 (e.g. Tavily, SerpAPI, DuckDuckGo).  For now it returns a clear message

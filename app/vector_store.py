@@ -76,6 +76,36 @@ def load_vector_store() -> PineconeVectorStore:
     return vector_store
 
 
+def check_duplicate_source(source_file: str) -> bool:
+    """Return *True* if vectors with the given *source_file* already exist in the index."""
+    pc = _get_pinecone_client()
+    index = pc.Index(PINECONE_INDEX_NAME)
+
+    # Use list() with a metadata filter to see if any vectors have this source_file.
+    # We only need to find one match to confirm a duplicate.
+    try:
+        results = index.list(limit=1)
+        # list() doesn't support metadata filtering on all plans,
+        # so fall back to a query-based approach.
+        from app.embeddings import get_embeddings
+        emb = get_embeddings()
+        # Create a dummy query vector of the right dimension
+        dummy_vector = emb.embed_query(source_file)
+        query_result = index.query(
+            vector=dummy_vector,
+            top_k=1,
+            filter={"source_file": {"$eq": source_file}},
+            include_metadata=True,
+        )
+        if query_result.matches:
+            logger.info("Duplicate detected: '%s' already exists in index", source_file)
+            return True
+    except Exception as exc:
+        logger.warning("Duplicate check failed: %s — proceeding with ingestion", exc)
+        return False
+    return False
+
+
 def get_retriever(vector_store: PineconeVectorStore, k: int = RETRIEVER_K):
     """Return a retriever for the given *vector_store* with top-*k* results."""
     return vector_store.as_retriever(search_kwargs={"k": k})
