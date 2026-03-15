@@ -28,8 +28,8 @@ _API_BASE = f"http://{_API_HOST}:{FLASK_PORT}"
 
 # Page configuration (must be the first Streamlit call)
 st.set_page_config(
-    page_title="🏏 Indian Cricket RAG",
-    page_icon="🏏",
+    page_title="Indian Cricket RAG",
+    page_icon="💎",
     layout="wide",
 )
 
@@ -43,10 +43,7 @@ def _check_backend():
         return False
 
 
-# ---------------------------------------------------------------------------
 # Session state initialisation
-# ---------------------------------------------------------------------------
-
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -56,10 +53,7 @@ if "mode" not in st.session_state:
 if "show_trace" not in st.session_state:
     st.session_state.show_trace = True
 
-# ---------------------------------------------------------------------------
 # Sidebar
-# ---------------------------------------------------------------------------
-
 with st.sidebar:
     st.title("🏏 Indian Cricket RAG")
     st.markdown("---")
@@ -109,21 +103,19 @@ with st.sidebar:
 
     # System info
     st.subheader("ℹ️ System Info")
-    try:
-        resp = requests.get(f"{_API_BASE}/api/health", timeout=5)
-        if resp.ok:
+    if _check_backend():
+        try:
+            resp = requests.get(f"{_API_BASE}/api/health", timeout=5)
             info = resp.json()
             st.write(f"**LLM:** `{info.get('model', 'N/A')}`")
             st.write(f"**Embeddings:** `{info.get('embedding_model', 'N/A')}`")
             st.write(f"**Chunks indexed:** {info.get('chunks', 'N/A')}")
             st.write("**Backend:** 🟢 Connected")
-        else:
-            st.write("**Backend:** 🔴 Error")
-    except requests.ConnectionError:
+        except Exception:
+            st.write("System info unavailable.")
+    else:
         st.write("**Backend:** 🔴 Not running")
         st.warning("Start backend: `python api/flask_app.py`")
-    except Exception:
-        st.write("System info unavailable.")
 
     if st.button("🗑️ Clear conversation"):
         st.session_state.messages = []
@@ -139,6 +131,23 @@ st.caption(
     f"Mode: **{st.session_state.mode}**"
 )
 
+# Welcome hero section (shown when chat is empty)
+if not st.session_state.messages:
+    st.markdown(
+        """
+        <div style="text-align: center; padding: 1.5rem 0;">
+            <p style="font-size: 1.15rem; color: #aaa; margin-top: 0.5rem;">
+                Ask anything about Indian Cricket history — legendary players,
+                iconic matches, records, and more.
+            </p>
+            <p style="color: #666; font-size: 0.95rem;">
+                💡 Try: <em>"Who scored the most centuries for India?"</em>
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 # Replay existing messages
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
@@ -148,7 +157,7 @@ for msg in st.session_state.messages:
                 for s in msg["sources"]:
                     st.markdown(
                         f"- **Page {s.get('page', 'N/A')}** (chunk {s.get('chunk_id', 'N/A')}): "
-                        f"{s.get('content_preview', '')[:200]}…"
+                        f"{s.get('content_preview', '')[:200]}…"      # Change According to your needs that how much content you want to show in source preview
                     )
         if st.session_state.show_trace and msg.get("agent_trace"):
             with st.expander("🔍 Agent reasoning trace"):
@@ -164,7 +173,7 @@ if prompt := st.chat_input("Ask a question about Indian Cricket…"):
 
     # Generate response via Flask API
     with st.chat_message("assistant"):
-        with st.spinner("Thinking…"):
+        with st.spinner("Soch rha hu…"):
             try:
                 mode_key = st.session_state.mode
                 api_mode = "simple" if mode_key == "Simple RAG" else "agentic"

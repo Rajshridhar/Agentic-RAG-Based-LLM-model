@@ -13,8 +13,6 @@ PDF_PATH = os.getenv("PDF_PATH", "")
 # ChromaDB persistence directory (legacy – kept for reference)
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "")
 
-# LLM model
-LLM_MODEL = os.getenv("LLM_MODEL", "")
 
 # Airawat Llama API settings
 AIRAWAT_API_URL = os.getenv("AIRAWAT_API_KEY", "")

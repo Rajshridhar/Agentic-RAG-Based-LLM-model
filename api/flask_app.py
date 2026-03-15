@@ -34,7 +34,6 @@ from app.config import (
     FLASK_DEBUG,
     FLASK_HOST,
     FLASK_PORT,
-    LLM_MODEL,
     PINECONE_INDEX_NAME,
 )
 
@@ -146,8 +145,6 @@ def query():
 @app.post("/api/ingest")
 def ingest():
     """Upload and ingest a new PDF document.
-
-    Expects multipart/form-data with a field named ``file`` containing a PDF.
 
     Response::
 
