@@ -357,9 +357,9 @@ Retrieve in-memory conversation history.
 
 ---
 
-## Example Queries
+## Example Queries (From PDF Docs)
 
-- _"Who is considered the greatest Indian batsman of all time?"_
+- _"Who is considered as the greatest Indian batsman of all time?"_
 - _"Tell me about India's first Cricket World Cup victory."_
 - _"What is the IPL and when was it founded?"_
 - _"Who holds the record for most Test centuries for India?"_
